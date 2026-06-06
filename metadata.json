@@ -1,5 +1,5 @@
 {
-  "name": "ShopEasy",
+  "name": "ShopEasy Malawi",
   "description": "A multi-vendor e-commerce marketplace similar to AliExpress with real-time analytics, vendor storefronts, support for product reviews, carts, order tracking, and clean dashboards.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]

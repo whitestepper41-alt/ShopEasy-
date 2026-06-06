@@ -224,7 +224,7 @@ export default function SellerDashboard({
                 <span className="text-xs font-bold text-gray-400 uppercase">Gross Earnings</span>
                 <span className="p-1 bg-emerald-50 rounded-lg text-emerald-600"><DollarSign className="h-4 w-4" /></span>
               </div>
-              <h3 className="text-2xl font-black text-gray-900">${totalEarnings.toFixed(2)}</h3>
+              <h3 className="text-2xl font-black text-gray-900">MWK {totalEarnings.toFixed(2)}</h3>
               <p className="text-[10px] text-green-600 font-semibold mt-1">From paid checkouts</p>
             </div>
 
@@ -283,7 +283,7 @@ export default function SellerDashboard({
                           </td>
                           <td className="py-3 text-gray-500">{order.buyerEmail}</td>
                           <td className="py-3 font-bold text-slate-900">
-                            ${itemDetails.reduce((s, i) => s + (i.price * i.quantity), 0).toFixed(2)}
+                            MWK {itemDetails.reduce((s, i) => s + (i.price * i.quantity), 0).toFixed(2)}
                           </td>
                           <td className="py-3">
                             <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
@@ -344,7 +344,7 @@ export default function SellerDashboard({
                         <span className="truncate" title={p.name}>{p.name}</span>
                       </td>
                       <td className="py-3 text-gray-500 capitalize">{p.category}</td>
-                      <td className="py-3 font-bold">${p.price.toFixed(2)}</td>
+                      <td className="py-3 font-bold">MWK {p.price.toFixed(2)}</td>
                       <td className="py-3 font-mono">
                         {p.stock === 0 ? (
                           <span className="text-red-500 font-bold">SOLDOUT (0)</span>
@@ -429,13 +429,13 @@ export default function SellerDashboard({
                       {itemDetails.map((item, idx) => (
                         <div key={idx} className="flex justify-between font-medium">
                           <span>{item.name} <span className="text-gray-400">x{item.quantity}</span></span>
-                          <span>${(item.price * item.quantity).toFixed(2)}</span>
+                          <span>MWK {(item.price * item.quantity).toFixed(2)}</span>
                         </div>
                       ))}
                       
                       <div className="bg-gray-50 p-2.5 rounded-lg text-xs flex justify-between items-center font-bold text-gray-800 mt-2.5">
                         <span>Your Revenue Share:</span>
-                        <span className="text-indigo-600 text-sm font-black">${sellerSubtotal.toFixed(2)}</span>
+                        <span className="text-indigo-600 text-sm font-black">MWK {sellerSubtotal.toFixed(2)}</span>
                       </div>
 
                       <div className="text-xs text-gray-500 mt-2">
@@ -583,7 +583,7 @@ export default function SellerDashboard({
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-bold text-gray-500 mb-1">Price Unit ($ USD)</label>
+                  <label className="block font-bold text-gray-500 mb-1">Price Unit (MWK)</label>
                   <input
                     type="number"
                     required

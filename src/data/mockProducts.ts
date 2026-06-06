@@ -96,7 +96,7 @@ export const MOCK_REVIEWS_FOR_SEED = [
   },
   {
     productId: "prod-key",
-    comment: "Beautiful lighting! Worth every single dollar, shipping was surprisingly fast as well.",
+    comment: "Beautiful lighting! Worth every single MWK, shipping was surprisingly fast as well.",
     rating: 5,
     buyerName: "Michael Chang"
   },

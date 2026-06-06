@@ -132,7 +132,7 @@ export default function AdminDashboard({
                 <span className="text-xs font-bold text-gray-400 uppercase">Gross Platform Volume</span>
                 <span className="p-1 bg-emerald-50 rounded-lg text-emerald-600"><TrendingUp className="h-4 w-4" /></span>
               </div>
-              <h3 className="text-2xl font-black text-gray-900">${totalGrossVolume.toFixed(2)}</h3>
+              <h3 className="text-2xl font-black text-gray-900">MWK {totalGrossVolume.toFixed(2)}</h3>
               <p className="text-[10px] text-green-600 font-semibold mt-1">All successful checkouts</p>
             </div>
 
@@ -189,7 +189,7 @@ export default function AdminDashboard({
                         <td className="py-2.5 text-gray-600">
                           {o.items.map(i => `${i.name} (${i.quantity}x)`).join(", ")}
                         </td>
-                        <td className="py-2.5 font-bold text-slate-900">${o.totalAmount.toFixed(2)}</td>
+                        <td className="py-2.5 font-bold text-slate-900">MWK {o.totalAmount.toFixed(2)}</td>
                         <td className="py-2.5 uppercase text-[10px] font-bold">
                           <span className={o.paymentStatus === "paid" ? "text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded" : "text-amber-600"}>
                             {o.paymentStatus}
@@ -280,7 +280,7 @@ export default function AdminDashboard({
                       </td>
                       <td className="py-3 text-gray-500">{p.sellerName}</td>
                       <td className="py-3 capitalize text-gray-400">{p.category}</td>
-                      <td className="py-3 text-gray-800 font-bold">${p.price.toFixed(2)}</td>
+                      <td className="py-3 text-gray-800 font-bold">MWK {p.price.toFixed(2)}</td>
                       <td className="py-3 text-neutral-500">{p.averageRating.toFixed(1)} / 5 ({p.reviewCount})</td>
                       <td className="py-3 text-right">
                         <button

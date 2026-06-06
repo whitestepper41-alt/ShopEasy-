@@ -101,7 +101,7 @@ export default function ProductCard({
           <div>
             <div className="text-xs text-neutral-400 font-medium leading-none">Price</div>
             <div className="flex items-baseline gap-0.5">
-              <span className="text-base font-black text-indigo-600">$</span>
+              <span className="text-base font-black text-indigo-600">MWK </span>
               <span className="text-xl font-black text-slate-900">{product.price.toFixed(2)}</span>
             </div>
             <div className="text-[10px] text-emerald-600 font-medium mt-0.5">Free Shipping</div>

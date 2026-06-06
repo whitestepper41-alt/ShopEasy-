@@ -895,7 +895,7 @@ export default function App() {
                           {order.items.map((item, idx) => (
                             <div key={idx} className="flex justify-between font-medium">
                               <span>{item.name} <span className="text-gray-400">x{item.quantity}</span></span>
-                              <span>${(item.price * item.quantity).toFixed(2)}</span>
+                              <span>MWK {(item.price * item.quantity).toFixed(2)}</span>
                             </div>
                           ))}
                         </div>
@@ -907,7 +907,7 @@ export default function App() {
                           </div>
                           <div>
                             <span className="text-neutral-500">Gross Total:</span>
-                            <span className="text-indigo-600 text-sm font-black ml-1.5">${order.totalAmount.toFixed(2)}</span>
+                            <span className="text-indigo-600 text-sm font-black ml-1.5">MWK {order.totalAmount.toFixed(2)}</span>
                           </div>
                         </div>
                       </div>
@@ -1119,7 +1119,7 @@ export default function App() {
                       <div>
                         <span className="text-xs text-gray-500 font-semibold leading-none">Deal Price</span>
                         <div className="flex items-baseline">
-                          <span className="text-lg font-black text-indigo-600">$</span>
+                          <span className="text-lg font-black text-indigo-600">MWK </span>
                           <span className="text-2xl font-black text-slate-900">{selectedProduct.price.toFixed(2)}</span>
                         </div>
                       </div>

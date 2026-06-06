@@ -157,7 +157,7 @@ export default function CartAndCheckout({
                       <p className="text-[10px] text-gray-400 font-bold uppercase truncate" title={item.product.sellerName}>Seller: {item.product.sellerName}</p>
                       
                       <div className="flex items-center justify-between pt-1">
-                        <span className="text-sm font-black text-slate-900">${item.product.price.toFixed(2)}</span>
+                        <span className="text-sm font-black text-slate-900">MWK {item.product.price.toFixed(2)}</span>
                         
                         {/* Quantity counters */}
                         <div className="flex items-center gap-1 rounded-lg border border-gray-150 p-0.5 bg-gray-50">
@@ -296,12 +296,12 @@ export default function CartAndCheckout({
                   <div className="bg-gray-50/75 p-3.5 rounded-lg text-xs space-y-1.5 font-semibold text-gray-600">
                     <div className="flex justify-between">
                       <span>Items Subtotal:</span>
-                      <span>${rawSubtotal.toFixed(2)}</span>
+                      <span>MWK {rawSubtotal.toFixed(2)}</span>
                     </div>
                     {discountAmount > 0 && (
                       <div className="flex justify-between text-green-600">
                         <span>Coupon Savings:</span>
-                        <span>-${discountAmount.toFixed(2)}</span>
+                        <span>-MWK {discountAmount.toFixed(2)}</span>
                       </div>
                     )}
                     <div className="flex justify-between text-gray-800">
@@ -310,7 +310,7 @@ export default function CartAndCheckout({
                     </div>
                     <div className="flex justify-between text-[13px] font-black text-gray-900 border-t border-gray-250 pt-2 mt-2">
                       <span>Grand Total:</span>
-                      <span className="text-indigo-600 text-base font-black">${finalTotal.toFixed(2)}</span>
+                      <span className="text-indigo-600 text-base font-black">MWK {finalTotal.toFixed(2)}</span>
                     </div>
                   </div>
 
@@ -321,7 +321,7 @@ export default function CartAndCheckout({
                     className="w-full py-3.2 rounded-xl bg-slate-900 hover:bg-indigo-600 text-white font-black text-sm transition shadow-md flex items-center justify-center gap-1.5 cursor-pointer disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
                     id="submit-payment-btn"
                   >
-                    <span>{isProcessing ? "Authenticating Stripe..." : `Authorize Payment $${finalTotal.toFixed(2)}`}</span>
+                    <span>{isProcessing ? "Authenticating Stripe..." : `Authorize Payment MWK ${finalTotal.toFixed(2)}`}</span>
                     <ArrowRight className="h-4 w-4" />
                   </button>
                 </form>

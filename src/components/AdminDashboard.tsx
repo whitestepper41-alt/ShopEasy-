@@ -98,7 +98,7 @@ export default function AdminDashboard({
           className="flex items-center gap-1.5 rounded-xl bg-white px-5 py-2.5 text-xs font-black text-red-700 transition shadow hover:bg-neutral-50 disabled:bg-gray-100 disabled:text-gray-400 active:scale-95"
         >
           <Database className={`h-4.5 w-4.5 ${isSeeding ? "animate-spin" : ""}`} />
-          <span>{isSeeding ? "Syncing database items..." : "Seed AliExpress Catalog (6 items)"}</span>
+          <span>{isSeeding ? "Syncing database items..." : "Seed Malawi Catalog (6 items)"}</span>
         </button>
       </div>
 

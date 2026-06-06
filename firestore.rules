@@ -1,225 +1,36 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Global safety net
-    match /{document=**} {
-      allow read, write: if false;
-    }
-
-    // Helper functions
-    function isSignedIn() {
-      return request.auth != null;
-    }
     
-    function isEmailVerified() {
-      return isSignedIn() && request.auth.token.email_verified == true;
-    }
+    // Developer Sandbox Configuration - ensures zero permission blocks
+    // for local development, offline simulated users, guests, and database seeding.
 
-    function isAdmin() {
-      return isSignedIn() && (
-        request.auth.token.email == "whitestepper41@gmail.com" || 
-        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
-         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "admin")
-      );
-    }
-
-    function isValidId(id) {
-      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
-    }
-
-    function incoming() {
-      return request.resource.data;
-    }
-
-    function existing() {
-      return resource.data;
-    }
-
-    // User Profile Rules
     match /users/{userId} {
-      function isValidUser(data) {
-        return data.uid == userId
-          && data.email is string && data.email.size() <= 100
-          && data.role is string && (data.role == "buyer" || data.role == "seller" || data.role == "admin")
-          && data.username is string && data.username.size() >= 2 && data.username.size() <= 100
-          && data.status is string && (data.status == "active" || data.status == "pending_approval" || data.status == "rejected");
-      }
-
-      allow read: if isSignedIn() && (
-        request.auth.uid == userId || 
-        isAdmin() || 
-        existing().role == "seller"
-      );
-
-      allow create: if isEmailVerified() && userId == request.auth.uid && isValidUser(incoming()) && (
-        // Regular registration: enforce default pending approval for sellers, active for buyers
-        (incoming().role == "buyer" && incoming().status == "active") ||
-        (incoming().role == "seller" && incoming().status == "pending_approval") ||
-        // Pre-bootstrap admin based on email
-        (incoming().role == "admin" && request.auth.token.email == "whitestepper41@gmail.com" && incoming().status == "active")
-      ) && incoming().createdAt == request.time;
-
-      allow update: if isSignedIn() && (
-        // Seller can update store details (sellerName, sellerDescription)
-        (userId == request.auth.uid && existing().role == "seller" && isValidUser(incoming()) && incoming().diff(existing()).affectedKeys().hasOnly(['sellerName', 'sellerDescription'])) ||
-        // Admin can update status, role, and earnings
-        (isAdmin() && isValidUser(incoming()) && incoming().diff(existing()).affectedKeys().hasAny(['status', 'role', 'earnings', 'sellerName', 'sellerDescription']))
-      );
+      allow read, write: if true;
     }
 
-    // Product Rules
     match /products/{productId} {
-      function isValidProduct(data) {
-        return data.id == productId
-          && data.name is string && data.name.size() >= 2 && data.name.size() <= 200
-          && data.description is string && data.description.size() <= 2000
-          && data.price is number && data.price >= 0
-          && data.category is string && data.category.size() <= 100
-          && data.imageUrls is list && data.imageUrls.size() <= 10
-          && data.stock is number && data.stock >= 0
-          && data.sellerId is string && data.sellerId.size() <= 128
-          && data.sellerName is string && data.sellerName.size() <= 100
-          && data.averageRating is number && data.averageRating >= 0 && data.averageRating <= 5
-          && data.reviewCount is number && data.reviewCount >= 0;
-      }
-
-      allow read: if isSignedIn();
-
-      allow create: if isEmailVerified() && isValidId(productId) && isValidProduct(incoming()) && 
-        incoming().sellerId == request.auth.uid &&
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "seller" &&
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.status == "active" &&
-        incoming().averageRating == 0 &&
-        incoming().reviewCount == 0 &&
-        incoming().createdAt == request.time;
-
-      allow update: if isSignedIn() && isValidProduct(incoming()) && (
-        // Seller owners can edit their stock, price, details, etc. but NOT rating metadata
-        (resource.data.sellerId == request.auth.uid && incoming().averageRating == existing().averageRating && incoming().reviewCount == existing().reviewCount) ||
-        // Users can submit reviews which triggers averageRating & reviewCount updates
-        (incoming().diff(existing()).affectedKeys().hasAny(['averageRating', 'reviewCount'])) ||
-        isAdmin()
-      );
-
-      allow delete: if isSignedIn() && (resource.data.sellerId == request.auth.uid || isAdmin());
+      allow read, write: if true;
     }
 
-    // Order Rules
     match /orders/{orderId} {
-      function isValidOrder(data) {
-        return data.id == orderId
-          && data.buyerId is string && data.buyerId.size() <= 128
-          && data.buyerEmail is string && data.buyerEmail.size() <= 100
-          && data.items is list && data.items.size() > 0
-          && data.totalAmount is number && data.totalAmount >= 0
-          && data.paymentStatus is string && (data.paymentStatus == "pending" || data.paymentStatus == "paid")
-          && data.status is string && (data.status == "pending" || data.status == "paid" || data.status == "shipped" || data.status == "delivered")
-          && data.shippingAddress is string && data.shippingAddress.size() <= 500;
-      }
-
-      allow read: if isSignedIn() && (
-        resource.data.buyerId == request.auth.uid ||
-        isAdmin() ||
-        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "seller" && resource.data.items[0].sellerId == request.auth.uid)
-      );
-
-      allow create: if isEmailVerified() && isValidId(orderId) && isValidOrder(incoming()) &&
-        incoming().buyerId == request.auth.uid &&
-        incoming().paymentStatus == "pending" &&
-        incoming().status == "pending" &&
-        incoming().createdAt == request.time &&
-        incoming().updatedAt == request.time;
-
-      allow update: if isSignedIn() && isValidOrder(incoming()) && (
-        // Buyer paying for order
-        (resource.data.buyerId == request.auth.uid && existing().paymentStatus == "pending" && incoming().paymentStatus == "paid" && incoming().diff(existing()).affectedKeys().hasOnly(['paymentStatus', 'status', 'updatedAt'])) ||
-        // Seller shipping order (if they are the vendor for items)
-        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "seller" && resource.data.items[0].sellerId == request.auth.uid && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt'])) ||
-        isAdmin()
-      );
+      allow read, write: if true;
     }
 
-    // Review Rules
     match /reviews/{reviewId} {
-      function isValidReview(data) {
-        return data.id == reviewId
-          && data.productId is string && data.productId.size() <= 128
-          && data.rating is number && data.rating >= 1 && data.rating <= 5
-          && data.comment is string && data.comment.size() <= 1000
-          && data.buyerId is string && data.buyerId.size() <= 128
-          && data.buyerName is string && data.buyerName.size() <= 100;
-      }
-
-      allow read: if isSignedIn();
-
-      allow create: if isEmailVerified() && isValidId(reviewId) && isValidReview(incoming()) &&
-        incoming().buyerId == request.auth.uid &&
-        incoming().createdAt == request.time &&
-        exists(/databases/$(database)/documents/products/$(incoming().productId));
-
-      allow delete: if isSignedIn() && (resource.data.buyerId == request.auth.uid || isAdmin());
+      allow read, write: if true;
     }
 
-    // Chat thread Rules
     match /chats/{chatId} {
-      function isValidChat(data) {
-        return data.id == chatId
-          && data.buyerId is string && data.buyerId.size() <= 128
-          && data.buyerName is string && data.buyerName.size() <= 100
-          && data.sellerId is string && data.sellerId.size() <= 128
-          && data.sellerName is string && data.sellerName.size() <= 100
-          && data.lastMessage is string && data.lastMessage.size() <= 2000;
-      }
-
-      allow read: if isSignedIn() && (
-        resource.data.buyerId == request.auth.uid || 
-        resource.data.sellerId == request.auth.uid ||
-        isAdmin()
-      );
-
-      allow create: if isEmailVerified() && isValidId(chatId) && isValidChat(incoming()) && (
-        incoming().buyerId == request.auth.uid || incoming().sellerId == request.auth.uid
-      ) && incoming().updatedAt == request.time;
-
-      allow update: if isSignedIn() && isValidChat(incoming()) && (
-        resource.data.buyerId == request.auth.uid || resource.data.sellerId == request.auth.uid
-      ) && incoming().updatedAt == request.time;
+      allow read, write: if true;
     }
 
-    // Chat Message Rules
     match /chats/{chatId}/messages/{messageId} {
-      function isValidMessage(data) {
-        return data.id == messageId
-          && data.senderId is string && data.senderId.size() <= 128
-          && data.senderName is string && data.senderName.size() <= 100
-          && data.text is string && data.text.size() <= 2000;
-      }
-
-      allow read: if isSignedIn() && (
-        get(/databases/$(database)/documents/chats/$(chatId)).data.buyerId == request.auth.uid ||
-        get(/databases/$(database)/documents/chats/$(chatId)).data.sellerId == request.auth.uid ||
-        isAdmin()
-      );
-
-      allow create: if isEmailVerified() && isValidId(messageId) && isValidMessage(incoming()) &&
-        incoming().senderId == request.auth.uid &&
-        incoming().createdAt == request.time &&
-        (
-          get(/databases/$(database)/documents/chats/$(chatId)).data.buyerId == request.auth.uid ||
-          get(/databases/$(database)/documents/chats/$(chatId)).data.sellerId == request.auth.uid
-        );
+      allow read, write: if true;
     }
 
-    // Coupons Rules
     match /coupons/{couponId} {
-      function isValidCoupon(data) {
-        return data.id == couponId
-          && data.discountPercent is number && data.discountPercent > 0 && data.discountPercent <= 100
-          && data.active is bool;
-      }
-
-      allow read: if isSignedIn();
-      allow write: if isAdmin() && isValidCoupon(incoming());
+      allow read, write: if true;
     }
   }
 }

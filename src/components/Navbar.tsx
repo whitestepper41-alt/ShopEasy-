@@ -120,7 +120,7 @@ export default function Navbar({
             <h1 className="text-xl font-bold tracking-tight text-neutral-900">
               Shop<span className="text-indigo-600">Easy</span>
             </h1>
-            <p className="text-[10px] text-neutral-400 font-medium">AliExpress Marketplace</p>
+            <p className="text-[10px] text-neutral-400 font-medium">Malawi Marketplace</p>
           </div>
         </div>
 
@@ -277,7 +277,7 @@ export default function Navbar({
 
           <div className="hidden lg:flex items-center gap-1 text-[11px] text-gray-400 font-medium">
             <Sparkles className="h-3 w-3 text-amber-500 animate-pulse" />
-            <span>AliExpress Deals Auto-applied: Use coupon <b>SAVE10</b> for 10% off</span>
+            <span>Malawi Deals Auto-applied: Use coupon <b>SAVE10</b> for 10% off</span>
           </div>
         </div>
       </div>

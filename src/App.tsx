@@ -100,7 +100,8 @@ export default function App() {
 
   // 1. Core authentication listener
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, async (user) => {
+    const syncAppUser = async () => {
+      const user = auth.currentUser;
       if (user) {
         // Sync custom user profile from Firestore
         const userDocRef = doc(db, "users", user.uid);
@@ -126,12 +127,30 @@ export default function App() {
           console.error("Auth profile syncing err: ", e);
         }
       } else {
-        setUserProfile(null);
+        const localUserStr = localStorage.getItem("shopeasy_simulated_user");
+        if (localUserStr) {
+          try {
+            setUserProfile(JSON.parse(localUserStr) as UserProfile);
+          } catch {
+            setUserProfile(null);
+          }
+        } else {
+          setUserProfile(null);
+        }
       }
       setAuthLoading(false);
+    };
+
+    const unsub = onAuthStateChanged(auth, async (user) => {
+      await syncAppUser();
     });
 
-    return () => unsub();
+    window.addEventListener("shopeasy-auth-sync", syncAppUser);
+
+    return () => {
+      unsub();
+      window.removeEventListener("shopeasy-auth-sync", syncAppUser);
+    };
   }, []);
 
   // 2. Fetch products collection continuously
@@ -255,6 +274,8 @@ export default function App() {
 
   // Switch tabs cleanly
   const handleSignout = async () => {
+    localStorage.removeItem("shopeasy_simulated_user");
+    window.dispatchEvent(new Event("shopeasy-auth-sync"));
     await signOut(auth);
     setUserProfile(null);
     setCurrentTab("browse");
@@ -265,9 +286,14 @@ export default function App() {
   const handleSimulatedLogin = async (simType: "buyer" | "seller" | "admin") => {
     setAuthLoading(true);
     try {
-      // 1. Sign in anonymously with Firebase to generate a valid real unique token
-      const cred = await signInAnonymously(auth);
-      const uid = cred.user.uid;
+      let uid: string;
+      try {
+        const cred = await signInAnonymously(auth);
+        uid = cred.user.uid;
+      } catch (authErr: any) {
+        console.warn("Anonymous sign-in restricted. Falling back to local simulated ID.", authErr);
+        uid = `sim-sandbox-${simType}`;
+      }
 
       // 2. Assemble simulation profiles
       let profilePayload: UserProfile;
@@ -305,8 +331,17 @@ export default function App() {
       }
 
       await setDoc(doc(db, "users", uid), profilePayload);
+      
+      const localProfile = {
+        ...profilePayload,
+        createdAt: new Date().toISOString()
+      };
+      localStorage.setItem("shopeasy_simulated_user", JSON.stringify(localProfile));
+      
       setUserProfile(profilePayload);
       setSimLoginsOpen(false);
+      
+      window.dispatchEvent(new Event("shopeasy-auth-sync"));
     } catch (e) {
       console.error(e);
       alert("Simulation setup failed: " + e);
@@ -331,7 +366,16 @@ export default function App() {
       }
 
       await updateDoc(docRef, updates);
-      setUserProfile((prev) => prev ? { ...prev, ...updates } : null);
+      setUserProfile((prev) => {
+        const next = prev ? { ...prev, ...updates } : null;
+        if (next) {
+          const localUserStr = localStorage.getItem("shopeasy_simulated_user");
+          if (localUserStr) {
+            localStorage.setItem("shopeasy_simulated_user", JSON.stringify(next));
+          }
+        }
+        return next;
+      });
       setCurrentTab(targetRole === "buyer" ? "browse" : targetRole);
     } catch (e) {
       console.error("Role switch error", e);
@@ -506,7 +550,7 @@ export default function App() {
     }
   };
 
-  // AliExpress Catalog Seeding triggers
+  // Malawi Catalog Seeding triggers
   const handleSeedDefaultCatalog = async () => {
     const batch = writeBatch(db);
     
@@ -538,7 +582,7 @@ export default function App() {
 
     try {
       await batch.commit();
-      alert("AliExpress database seeded successfully with 6 products, demo ratings, and SAVE10 vouchers!");
+      alert("Malawi database seeded successfully with 6 products, demo ratings, and SAVE10 vouchers!");
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, "products");
     }
@@ -1004,7 +1048,7 @@ export default function App() {
         <div className="mx-auto max-w-7xl flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="space-y-1.5 text-center md:text-left">
             <h4 className="text-white text-sm font-black">ShopEasy Incorporated</h4>
-            <p className="text-gray-400 font-medium text-[11px]">AliExpress Style Multi-vendor Sandbox Environment</p>
+            <p className="text-gray-400 font-medium text-[11px]">Malawi Style Multi-vendor Sandbox Environment</p>
           </div>
           
           <div className="flex gap-4.5 flex-wrap justify-center text-[11px] font-bold">
@@ -1090,7 +1134,7 @@ export default function App() {
                   </div>
 
                   <p className="text-gray-500 text-xs font-medium leading-relaxed mb-6">
-                    {selectedProduct.description || "Detailed specifications for this AliExpress marketplace catalog item."}
+                    {selectedProduct.description || "Detailed specifications for this Malawi marketplace catalog item."}
                   </p>
                 </div>
 

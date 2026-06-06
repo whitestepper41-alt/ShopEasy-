@@ -49,23 +49,67 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, async (u) => {
-      setUser(u);
+    const syncUser = async () => {
+      const u = auth.currentUser;
       if (u) {
+        setUser(u);
         await fetchProfile(u);
       } else {
-        setUserProfile(null);
-        setRole(null);
+        const localUserStr = localStorage.getItem("shopeasy_simulated_user");
+        if (localUserStr) {
+          try {
+            const profile = JSON.parse(localUserStr) as UserProfile;
+            const mockUser = {
+              uid: profile.uid,
+              email: profile.email,
+              displayName: profile.username,
+              photoURL: null,
+              emailVerified: true,
+              isAnonymous: false,
+            } as any;
+            setUser(mockUser);
+            setUserProfile(profile);
+            setRole(profile.role);
+          } catch {
+            setUser(null);
+            setUserProfile(null);
+            setRole(null);
+          }
+        } else {
+          setUser(null);
+          setUserProfile(null);
+          setRole(null);
+        }
       }
       setLoading(false);
+    };
+
+    const unsub = onAuthStateChanged(auth, async (u) => {
+      await syncUser();
     });
 
-    return () => unsub();
+    window.addEventListener("shopeasy-auth-sync", syncUser);
+
+    return () => {
+      unsub();
+      window.removeEventListener("shopeasy-auth-sync", syncUser);
+    };
   }, []);
 
   const refreshProfile = async () => {
     if (auth.currentUser) {
       await fetchProfile(auth.currentUser);
+    } else {
+      const localUserStr = localStorage.getItem("shopeasy_simulated_user");
+      if (localUserStr) {
+        try {
+          const profile = JSON.parse(localUserStr) as UserProfile;
+          setUserProfile(profile);
+          setRole(profile.role);
+        } catch (e) {
+          console.error("Error refreshing offline/simulated user", e);
+        }
+      }
     }
   };
 

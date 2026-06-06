@@ -42,10 +42,10 @@ export default function ChatWindow({
   const [inputText, setInputText] = useState("");
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
-  if (!isOpen) return null;
-
   // 1. Fetch available chat thread channels
   useEffect(() => {
+    if (!isOpen) return;
+
     let q;
     const path = "chats";
 
@@ -68,11 +68,11 @@ export default function ChatWindow({
     });
 
     return () => unsub();
-  }, [currentUser]);
+  }, [currentUser, isOpen]);
 
   // 2. Fetch messages representing the active thread
   useEffect(() => {
-    if (!activeThreadId) {
+    if (!isOpen || !activeThreadId) {
       setMessages([]);
       return;
     }
@@ -98,7 +98,7 @@ export default function ChatWindow({
     });
 
     return () => unsub();
-  }, [activeThreadId]);
+  }, [activeThreadId, isOpen]);
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -133,6 +133,8 @@ export default function ChatWindow({
   };
 
   const currentThreadObj = threads.find(t => t.id === activeThreadId);
+
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-y-4 right-4 z-50 w-[380px] max-w-[calc(100vw-32px)] h-[580px] rounded-2xl bg-white shadow-2xl border border-gray-150 flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom duration-200" id="chatbox-floating-anchor">

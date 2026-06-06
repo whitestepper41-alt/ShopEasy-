@@ -62,6 +62,7 @@ import SellerDashboard from "./components/SellerDashboard";
 import AdminDashboard from "./components/AdminDashboard";
 import CartAndCheckout from "./components/CartAndCheckout";
 import ChatWindow from "./components/ChatWindow";
+import Login from "./pages/Login";
 
 export default function App() {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
@@ -779,47 +780,7 @@ export default function App() {
       <main className="mx-auto flex-1 w-full max-w-7xl p-4 lg:p-6 mb-12">
         {/* If user is completely unauthenticated */}
         {!userProfile ? (
-          <div className="bg-white rounded-2xl border border-gray-100 p-8 text-center max-w-xl mx-auto my-12 shadow-sm">
-            <ShoppingBag className="mx-auto h-16 w-16 text-indigo-600 mb-4 bg-indigo-50 rounded-2xl p-3" />
-            <h2 className="text-xl font-bold text-neutral-900 mb-2">Welcome to ShopEasy Marketplace</h2>
-            <p className="text-xs text-gray-500 leading-relaxed mb-6">
-              A responsive AliExpress style sandbox with multi-vendor channels, custom store dashboards, integrated order histories, discount coupons, and instant messaging overlays backing real-time Firestore synchronization.
-            </p>
-            
-            <div className="space-y-3">
-              <button
-                onClick={handleGoogleLogin}
-                className="w-full flex items-center justify-center gap-2 bg-neutral-900 text-white font-black text-xs py-3 rounded-xl transition hover:bg-neutral-805"
-                id="unauth-google-login-btn"
-              >
-                <span>Sign In via Mock Google auth Popup</span>
-              </button>
-              <div className="relative my-4 text-center">
-                <span className="bg-white px-2 text-[10px] text-gray-400 font-bold uppercase z-10 relative">Or Bypass via Sim Profiles</span>
-                <hr className="absolute top-2 w-full border-gray-100" />
-              </div>
-              <div className="grid grid-cols-3 gap-2 text-[11px] font-black">
-                <button
-                  onClick={() => handleSimulatedLogin("buyer")}
-                  className="bg-white hover:bg-gray-50 border border-gray-200 p-2.5 rounded-xl transition text-orange-600"
-                >
-                  Demo Buyer
-                </button>
-                <button
-                  onClick={() => handleSimulatedLogin("seller")}
-                  className="bg-white hover:bg-gray-50 border border-gray-200 p-2.5 rounded-xl transition text-violet-600"
-                >
-                  Demo Seller
-                </button>
-                <button
-                  onClick={() => handleSimulatedLogin("admin")}
-                  className="bg-white hover:bg-gray-50 border border-gray-200 p-2.5 rounded-xl transition text-red-600"
-                >
-                  Demo Admin
-                </button>
-              </div>
-            </div>
-          </div>
+          <Login onSimulateLogin={handleSimulatedLogin} />
         ) : (
           <>
             {/* If authenticated user: Render target page components based on tab route */}

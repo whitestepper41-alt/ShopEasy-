@@ -191,8 +191,9 @@ export default function CartAndCheckout({
       // Reset modal open keys
       setSelectedSellerId(null);
     } catch (err) {
-      console.error(err);
-      alert("Billing connection interrupted. Please try again.");
+      console.error("Payment transaction error:", err);
+      const errMsg = err instanceof Error ? err.message : String(err);
+      alert(`Billing connection interrupted: ${errMsg}\nPlease try again.`);
     } finally {
       setIsProcessing(false);
       setProcessStep("");

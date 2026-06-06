@@ -27,6 +27,7 @@ interface AdminDashboardProps {
   onSeedDefaultCatalog: () => Promise<void>;
   onAddCoupon: (couponCode: string, percent: number) => Promise<void>;
   onToggleCoupon: (couponId: string, active: boolean) => Promise<void>;
+  onDeleteUser: (userId: string) => Promise<void>;
 }
 
 export default function AdminDashboard({
@@ -41,6 +42,7 @@ export default function AdminDashboard({
   onSeedDefaultCatalog,
   onAddCoupon,
   onToggleCoupon,
+  onDeleteUser,
 }: AdminDashboardProps) {
   const [activeTab, setActiveTab] = useState<"metrics" | "vendors" | "products" | "coupons" | "users">("metrics");
   const [newCouponCode, setNewCouponCode] = useState("");
@@ -410,6 +412,7 @@ export default function AdminDashboard({
                   <th className="pb-2">Role classification</th>
                   <th className="pb-2">Store name (Sellers Only)</th>
                   <th className="pb-2">Store Authorization Status</th>
+                  <th className="pb-2 text-right">Account Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50 font-medium text-neutral-700">
@@ -442,6 +445,22 @@ export default function AdminDashboard({
                         </span>
                       ) : (
                         <span className="text-gray-400">-</span>
+                      )}
+                    </td>
+                    <td className="py-2.5 text-right">
+                      {user.uid !== adminProfile.uid ? (
+                        <button
+                          onClick={() => {
+                            if (window.confirm(`Are you absolutely sure you want to permanently delete user "${user.username}" (${user.email})? This action cannot be undone.`)) {
+                              onDeleteUser(user.uid);
+                            }
+                          }}
+                          className="px-2 py-1 text-[10px] text-red-600 hover:text-white border border-red-200 hover:bg-red-600 rounded-lg transition font-black font-sans uppercase tracking-tight cursor-pointer"
+                        >
+                          Delete Account
+                        </button>
+                      ) : (
+                        <span className="text-[10px] text-gray-400 font-bold uppercase">Main Admin (Self)</span>
                       )}
                     </td>
                   </tr>

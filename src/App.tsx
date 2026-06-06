@@ -37,7 +37,8 @@ import {
   orderBy, 
   writeBatch, 
   serverTimestamp,
-  updateDoc
+  updateDoc,
+  deleteDoc
 } from "firebase/firestore";
 
 import { db, auth, handleFirestoreError, OperationType } from "./firebase";
@@ -62,11 +63,13 @@ import SellerDashboard from "./components/SellerDashboard";
 import AdminDashboard from "./components/AdminDashboard";
 import CartAndCheckout from "./components/CartAndCheckout";
 import ChatWindow from "./components/ChatWindow";
+import SellerApplyModal from "./components/SellerApplyModal";
 import Login from "./pages/Login";
 
 export default function App() {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
+  const [isSellerApplyOpen, setIsSellerApplyOpen] = useState(false);
   const [products, setProducts] = useState<Product[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [coupons, setCoupons] = useState<DiscountCoupon[]>([]);
@@ -109,7 +112,13 @@ export default function App() {
         try {
           const snapshot = await getDoc(userDocRef);
           if (snapshot.exists()) {
-            setUserProfile(snapshot.data() as UserProfile);
+            const data = snapshot.data() as UserProfile;
+            // Safeguard: Only the designated owner email can be Admin
+            if (data.role === "admin" && user.email !== "whitestepper41@gmail.com") {
+              data.role = "buyer";
+              await updateDoc(userDocRef, { role: "buyer" });
+            }
+            setUserProfile(data);
           } else {
             // New register defaults structure
             const isDefaultAdmin = user.email === "whitestepper41@gmail.com";
@@ -371,6 +380,10 @@ export default function App() {
   // Sandbox Role Switching Switcher
   const handleSwitchSandboxRole = async (targetRole: "buyer" | "seller" | "admin") => {
     if (!userProfile) return;
+    if (userProfile.email !== "whitestepper41@gmail.com") {
+      alert("Unauthorized: Sandbox role-switching controls restricted to system administrator.");
+      return;
+    }
     try {
       const docRef = doc(db, "users", userProfile.uid);
       const updates: Partial<UserProfile> = {
@@ -397,6 +410,47 @@ export default function App() {
       setCurrentTab(targetRole === "buyer" ? "browse" : targetRole);
     } catch (e) {
       console.error("Role switch error", e);
+    }
+  };
+
+  // Handle buyer applying to become a seller
+  const handleApplySeller = async (data: {
+    sellerName: string;
+    sellerDescription: string;
+    sellerWhatsApp: string;
+    sellerPayChanguPublicKey: string;
+  }) => {
+    if (!userProfile) return;
+    const path = `users/${userProfile.uid}`;
+    try {
+      const updates: Partial<UserProfile> = {
+        role: "seller",
+        status: "pending_approval",
+        sellerName: data.sellerName,
+        sellerDescription: data.sellerDescription,
+        sellerWhatsApp: data.sellerWhatsApp,
+        sellerPayChanguPublicKey: data.sellerPayChanguPublicKey,
+      };
+
+      await updateDoc(doc(db, "users", userProfile.uid), updates);
+      
+      setUserProfile((prev) => prev ? { ...prev, ...updates } : null);
+      
+      // Update local storage simulation sync
+      const localUserStr = localStorage.getItem("shopeasy_simulated_user");
+      if (localUserStr) {
+        try {
+          const localObj = JSON.parse(localUserStr);
+          localStorage.setItem("shopeasy_simulated_user", JSON.stringify({ ...localObj, ...updates }));
+        } catch (e) {
+          console.warn("Storage sync warning", e);
+        }
+      }
+      
+      setCurrentTab("seller");
+      alert("Your merchant application has been successfully submitted! Admin will audit and approve your store.");
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, path);
     }
   };
 
@@ -448,6 +502,22 @@ export default function App() {
     try {
       await setDoc(doc(db, "products", productId), { stock: 0 }); // retire
       alert("Item cleared by system operator.");
+    } catch (error) {
+      handleFirestoreError(error, OperationType.DELETE, path);
+    }
+  };
+
+  // Delete/Wipe user account completely (Admin Only)
+  const handleDeleteUser = async (userId: string) => {
+    if (!userProfile) return;
+    if (userProfile.uid === userId) {
+      alert("Security Block: You cannot delete your own admin profile!");
+      return;
+    }
+    const path = `users/${userId}`;
+    try {
+      await deleteDoc(doc(db, "users", userId));
+      alert("User account has been permanently deleted from the marketplace directory.");
     } catch (error) {
       handleFirestoreError(error, OperationType.DELETE, path);
     }
@@ -852,6 +922,7 @@ export default function App() {
         onSwitchRole={handleSwitchSandboxRole}
         currentTab={currentTab}
         setCurrentTab={setCurrentTab}
+        onOpenSellerApply={() => setIsSellerApplyOpen(true)}
       />
 
       {/* Main container fluid layout */}
@@ -891,6 +962,7 @@ export default function App() {
                 onSeedDefaultCatalog={handleSeedDefaultCatalog}
                 onAddCoupon={handleAddCoupon}
                 onToggleCoupon={handleToggleCoupon}
+                onDeleteUser={handleDeleteUser}
               />
             )}
 
@@ -1312,6 +1384,13 @@ export default function App() {
         currentUser={userProfile}
         activeThreadId={activeChatThreadId}
         onSelectThread={setActiveChatThreadId}
+      />
+
+      {/* OVERLAY: SELLER INCUBATOR REGISTRATION FORM */}
+      <SellerApplyModal
+        isOpen={isSellerApplyOpen}
+        onClose={() => setIsSellerApplyOpen(false)}
+        onSubmit={handleApplySeller}
       />
 
     </div>

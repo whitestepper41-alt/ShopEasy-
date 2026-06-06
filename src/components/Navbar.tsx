@@ -27,6 +27,7 @@ interface NavbarProps {
   onSwitchRole: (role: "buyer" | "seller" | "admin") => void;
   currentTab: "browse" | "seller" | "admin" | "orders" | "wishlist";
   setCurrentTab: (tab: "browse" | "seller" | "admin" | "orders" | "wishlist") => void;
+  onOpenSellerApply?: () => void;
 }
 
 const CATEGORIES = ["All", "Electronics", "Audio", "Wearables", "Home & Living", "Accessories"];
@@ -46,6 +47,7 @@ export default function Navbar({
   onSwitchRole,
   currentTab,
   setCurrentTab,
+  onOpenSellerApply,
 }: NavbarProps) {
   return (
     <header className="sticky top-0 z-50 w-full border-b border-gray-100 bg-white/95 backdrop-blur-md">
@@ -60,7 +62,7 @@ export default function Navbar({
           </div>
 
           <div className="flex items-center gap-4">
-            {userProfile ? (
+            {userProfile && userProfile.email === "whitestepper41@gmail.com" ? (
               <div className="flex items-center gap-2">
                 <span className="text-neutral-400">Sandbox View:</span>
                 <div className="flex gap-1.5">
@@ -138,6 +140,17 @@ export default function Navbar({
 
         {/* Right nav triggers */}
         <div className="flex items-center gap-4">
+          {userProfile && userProfile.role === "buyer" && (
+            <button
+              onClick={onOpenSellerApply}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-black rounded-lg border border-violet-200 bg-violet-50 text-violet-700 hover:bg-violet-100 transition shadow-xs"
+              id="become-seller-navbar-btn"
+            >
+              <Store className="h-4 w-4 text-violet-500" />
+              <span>Become a Seller</span>
+            </button>
+          )}
+
           {userProfile && userProfile.role === "seller" && (
             <button
               onClick={() => setCurrentTab("seller")}

@@ -71,6 +71,7 @@ export default function App() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [coupons, setCoupons] = useState<DiscountCoupon[]>([]);
   const [users, setUsers] = useState<UserProfile[]>([]);
+  const [sellers, setSellers] = useState<UserProfile[]>([]);
   
   // Browsing/Filter UX UI States
   const [searchQuery, setSearchQuery] = useState("");
@@ -234,6 +235,23 @@ export default function App() {
 
     return () => unsub();
   }, [userProfile]);
+
+  // 5b. Fetch public details of sellers
+  useEffect(() => {
+    const path = "users";
+    const q = query(collection(db, path), where("role", "==", "seller"));
+    const unsub = onSnapshot(q, (snapshot) => {
+      const items: UserProfile[] = [];
+      snapshot.forEach(doc => {
+        items.push({ ...doc.data(), uid: doc.id } as UserProfile);
+      });
+      setSellers(items);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.GET, path);
+    });
+
+    return () => unsub();
+  }, []);
 
   // 6. Fetch reviews for selected product details
   useEffect(() => {
@@ -469,7 +487,12 @@ export default function App() {
   };
 
   // Seller profile modification
-  const handleUpdateSellerDetails = async (details: { sellerName: string; sellerDescription: string }) => {
+  const handleUpdateSellerDetails = async (details: { 
+    sellerName: string; 
+    sellerDescription: string;
+    sellerWhatsApp?: string;
+    sellerPayChanguPublicKey?: string;
+  }) => {
     if (!userProfile) return;
     const path = `users/${userProfile.uid}`;
     try {
@@ -481,13 +504,19 @@ export default function App() {
   };
 
   // Checkout mechanism
-  const handleCheckout = async (shippingAddress: string, couponCode: string, totalAmount: number) => {
+  const handleCheckout = async (shippingAddress: string, couponCode: string, totalAmount: number, targetSellerId?: string) => {
     if (!userProfile) return;
     const path = "orders";
     try {
       const orderRef = doc(collection(db, path));
       
-      const orderItems = cart.map(item => ({
+      const itemsToCheckout = targetSellerId 
+        ? cart.filter(item => item.product.sellerId === targetSellerId)
+        : cart;
+      
+      if (itemsToCheckout.length === 0) return;
+
+      const orderItems = itemsToCheckout.map(item => ({
         productId: item.product.id,
         name: item.product.name,
         price: item.product.price,
@@ -501,7 +530,7 @@ export default function App() {
         buyerEmail: userProfile.email,
         items: orderItems,
         totalAmount,
-        paymentStatus: "paid", // Instantly completed paid checkout simulation
+        paymentStatus: "paid", 
         status: "paid",
         shippingAddress,
         couponCode: couponCode || undefined,
@@ -513,16 +542,21 @@ export default function App() {
       await setDoc(orderRef, newOrder);
 
       // 2. Adjust inventories in products
-      for (const item of cart) {
+      for (const item of itemsToCheckout) {
         const productRef = doc(db, "products", item.productId);
         const newStock = Math.max(0, item.product.stock - item.quantity);
         await updateDoc(productRef, { stock: newStock });
       }
 
-      setCart([]);
-      alert("Order processed successfully! Your simulated Stripe payment was validated.");
+      // 3. Update cart state
+      if (targetSellerId) {
+        setCart(prev => prev.filter(item => item.product.sellerId !== targetSellerId));
+      } else {
+        setCart([]);
+      }
     } catch (error) {
       handleFirestoreError(error, OperationType.CREATE, path);
+      throw error;
     }
   };
 
@@ -1268,6 +1302,7 @@ export default function App() {
         onRemoveItem={handleRemoveCartItem}
         coupons={coupons}
         onCheckout={handleCheckout}
+        sellers={sellers}
       />
 
       {/* OVERLAY: LIVE MESSENGER CHAT POPUP */}

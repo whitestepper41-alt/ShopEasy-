@@ -23,7 +23,12 @@ interface SellerDashboardProps {
   onEditProduct: (productId: string, productData: any) => Promise<void>;
   onDeleteProduct: (productId: string) => Promise<void>;
   onUpdateOrderStatus: (orderId: string, newStatus: string) => Promise<void>;
-  onUpdateSellerDetails: (details: { sellerName: string; sellerDescription: string }) => Promise<void>;
+  onUpdateSellerDetails: (details: { 
+    sellerName: string; 
+    sellerDescription: string;
+    sellerWhatsApp?: string;
+    sellerPayChanguPublicKey?: string;
+  }) => Promise<void>;
 }
 
 export default function SellerDashboard({
@@ -52,6 +57,8 @@ export default function SellerDashboard({
   // Seller profile fields settings
   const [storeNameState, setStoreNameState] = useState(sellerProfile.sellerName || "");
   const [storeDescriptionState, setStoreDescriptionState] = useState(sellerProfile.sellerDescription || "");
+  const [storeWhatsApp, setStoreWhatsApp] = useState(sellerProfile.sellerWhatsApp || "");
+  const [storePayChanguPublicKey, setStorePayChanguPublicKey] = useState(sellerProfile.sellerPayChanguPublicKey || "");
 
   // Filter products by seller
   const sellerProducts = products.filter(p => p.sellerId === sellerProfile.uid);
@@ -129,7 +136,9 @@ export default function SellerDashboard({
     e.preventDefault();
     await onUpdateSellerDetails({
       sellerName: storeNameState,
-      sellerDescription: storeDescriptionState
+      sellerDescription: storeDescriptionState,
+      sellerWhatsApp: storeWhatsApp,
+      sellerPayChanguPublicKey: storePayChanguPublicKey
     });
     alert("Store Profile updated successfully!");
   };
@@ -504,12 +513,38 @@ export default function SellerDashboard({
               <label className="block text-gray-500 font-semibold mb-1">Store Mini-Bio / Seller Description</label>
               <textarea
                 required
-                rows={4}
+                rows={3}
                 value={storeDescriptionState}
                 onChange={(e) => setStoreDescriptionState(e.target.value)}
                 className="w-full text-xs rounded-lg border border-gray-200 p-2.5 outline-none focus:border-violet-500 bg-gray-50 resize-y"
                 placeholder="Brief summary introducing what your store sells, brand guarantees, and dispatch times."
               />
+            </div>
+
+            <div>
+              <label className="block text-gray-500 font-semibold mb-1">Store WhatsApp Phone Number (e.g. 265888123456)</label>
+              <input
+                type="text"
+                required
+                value={storeWhatsApp}
+                onChange={(e) => setStoreWhatsApp(e.target.value)}
+                className="w-full text-xs rounded-lg border border-gray-200 p-2.5 outline-none focus:border-violet-500 bg-gray-50 font-mono"
+                placeholder="265888123456"
+              />
+              <p className="text-[10px] text-gray-400 mt-1">This number receives instant WhatsApp notifications for every completed payment of your products.</p>
+            </div>
+
+            <div>
+              <label className="block text-gray-500 font-semibold mb-1">PayChangu Public Key (Direct Checkout Key)</label>
+              <input
+                type="text"
+                required
+                value={storePayChanguPublicKey}
+                onChange={(e) => setStorePayChanguPublicKey(e.target.value)}
+                className="w-full text-xs rounded-lg border border-gray-200 p-2.5 outline-none focus:border-violet-500 bg-gray-50 font-mono"
+                placeholder="pub-test-..."
+              />
+              <p className="text-[10px] text-gray-400 mt-1">Allows customers to pay directly to your merchant wallet. Use your PayChangu test or live public key.</p>
             </div>
 
             <button

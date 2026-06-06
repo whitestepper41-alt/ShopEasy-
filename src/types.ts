@@ -9,6 +9,8 @@ export interface UserProfile {
   status: "active" | "pending_approval" | "rejected";
   sellerName?: string;
   sellerDescription?: string;
+  sellerWhatsApp?: string;
+  sellerPayChanguPublicKey?: string;
   earnings?: number;
 }
 

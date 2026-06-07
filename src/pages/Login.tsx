@@ -15,6 +15,7 @@ import { signInAnonymously } from "firebase/auth";
 import { auth, db } from "../services/firebase";
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { UserProfile } from "../types";
+import firebaseConfig from "../../firebase-applet-config.json";
 
 interface LoginProps {
   onLoginSuccess?: (profile: UserProfile) => void;
@@ -78,7 +79,16 @@ export default function Login({ onLoginSuccess }: LoginProps) {
       setSuccessMessage("Authenticated with Google!");
     } catch (err: any) {
       console.error(err);
-      setErrorMessage(err.message || "Google Authentication was cancelled or blocked.");
+      if (err.message && err.message.startsWith("domain-unauthorized:")) {
+        const parsedMessage = err.message.replace("domain-unauthorized:", "");
+        setErrorMessage(parsedMessage);
+      } else if (err.code === "auth/unauthorized-domain" || err.message?.includes("unauthorized-domain")) {
+        setErrorMessage(
+          `This preview app's domain (${window.location.hostname}) is not authorized in your Firebase Console. Please add "${window.location.hostname}" to Authorized Domains in your Firebase console under Authentication > Settings > Authorized Domains.`
+        );
+      } else {
+        setErrorMessage(err.message || "Google Authentication was cancelled or blocked.");
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -133,10 +143,55 @@ export default function Login({ onLoginSuccess }: LoginProps) {
 
       {/* Error/Success Feedbacks */}
       {errorMessage && (
-        <div className="bg-red-50 text-red-700 text-xs py-2.5 px-3.5 rounded-xl border border-red-100 mb-4 font-semibold flex items-center gap-2">
-          <div className="h-1.5 w-1.5 rounded-full bg-red-600 animate-pulse flex-shrink-0" />
-          <span>{errorMessage}</span>
-        </div>
+        errorMessage.includes("Settings > Authorized Domains") || errorMessage.includes("Authorized domains") || errorMessage.includes("unauthorized-domain") ? (
+          <div className="bg-amber-50 text-amber-900 border border-amber-200 p-4.5 rounded-2xl mb-5 space-y-3 shadow-xs">
+            <div className="flex items-start gap-2.5">
+              <ShieldAlert className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+              <div>
+                <p className="font-extrabold text-amber-950 text-xs">Firebase Domain Authorization Required</p>
+                <p className="leading-relaxed text-[11px] text-amber-900/90 mt-0.5">
+                  To authenticate properly, this environment's active domain must be added to your Authorized Domains list in the Firebase console.
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-white/90 border border-amber-200/60 rounded-xl p-2.5 font-mono text-[10px] space-y-1">
+              <div className="flex justify-between items-center text-[9px] text-slate-500 font-bold uppercase tracking-wider">
+                <span>Domain to Authorize</span>
+                <button 
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard.writeText(window.location.hostname);
+                    alert("Copied host name to clipboard!");
+                  }}
+                  className="px-2 py-0.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded transition cursor-pointer font-sans font-extrabold text-[9px]"
+                >
+                  Copy Domain
+                </button>
+              </div>
+              <div className="text-slate-800 font-bold break-all select-all pt-1 text-[11px]">{window.location.hostname}</div>
+            </div>
+
+            <div className="text-[11px] leading-relaxed text-amber-950/90 space-y-1.5 pt-1">
+              <p className="font-extrabold text-amber-950">How to Fix This in 60 Seconds:</p>
+              <ol className="list-decimal list-outside space-y-1 pl-4.5 font-medium">
+                <li>Go to the <a href={`https://console.firebase.google.com/project/${firebaseConfig.projectId}/authentication/settings`} target="_blank" rel="noopener noreferrer" className="underline font-bold text-indigo-650 hover:text-indigo-800">Firebase Authentication Console</a>.</li>
+                <li>At the top bar, click on the <b>Settings</b> tab.</li>
+                <li>In the left sidebar, click on <b>Authorized domains</b>.</li>
+                <li>Click the <b>Add domain</b> button and paste: <code>{window.location.hostname}</code>.</li>
+              </ol>
+            </div>
+            
+            <div className="border-t border-amber-200/60 pt-2.5 text-[11px] text-amber-800/85 font-medium leading-relaxed">
+              💡 <b>Tip:</b> Standard email registration/login will automatic fallback to <b>offline sandbox mode</b> so you can continue testing all features right away even without saving domains!
+            </div>
+          </div>
+        ) : (
+          <div className="bg-red-50 text-red-700 text-xs py-2.5 px-3.5 rounded-xl border border-red-100 mb-4 font-semibold flex items-center gap-2">
+            <div className="h-1.5 w-1.5 rounded-full bg-red-600 animate-pulse flex-shrink-0" />
+            <span>{errorMessage}</span>
+          </div>
+        )
       )}
       {successMessage && (
         <div className="bg-emerald-50 text-emerald-700 text-xs py-2.5 px-3.5 rounded-xl border border-emerald-100 mb-4 font-semibold flex items-center gap-2">

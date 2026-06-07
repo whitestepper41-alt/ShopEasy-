@@ -134,7 +134,18 @@ export default function App() {
           console.error("Auth profile syncing err: ", e);
         }
       } else {
-        setUserProfile(null);
+        // Fallback to simulated/offline session if present in local storage
+        const simUserStr = localStorage.getItem("shopeasy_simulated_user");
+        if (simUserStr) {
+          try {
+            const data = JSON.parse(simUserStr) as UserProfile;
+            setUserProfile(data);
+          } catch (e) {
+            setUserProfile(null);
+          }
+        } else {
+          setUserProfile(null);
+        }
       }
       setAuthLoading(false);
     };

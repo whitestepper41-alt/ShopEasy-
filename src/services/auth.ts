@@ -37,10 +37,12 @@ export const registerUser = async (email: string, password: string, name: string
     if (
       err.code === "auth/operation-not-allowed" ||
       err.code === "auth/network-request-failed" ||
+      err.code === "auth/unauthorized-domain" ||
       err.message?.includes("operation-not-allowed") ||
       err.message?.includes("not-allowed") ||
       err.message?.includes("network-request-failed") ||
-      err.message?.includes("network-request")
+      err.message?.includes("network-request") ||
+      err.message?.includes("unauthorized-domain")
     ) {
       const uid = `sim-${email.replace(/[^a-zA-Z0-9]/g, "").toLowerCase()}`;
       const profile: UserProfile = {
@@ -85,10 +87,12 @@ export const loginUser = async (email: string, password: string) => {
     if (
       err.code === "auth/operation-not-allowed" ||
       err.code === "auth/network-request-failed" ||
+      err.code === "auth/unauthorized-domain" ||
       err.message?.includes("operation-not-allowed") ||
       err.message?.includes("not-allowed") ||
       err.message?.includes("network-request-failed") ||
-      err.message?.includes("network-request")
+      err.message?.includes("network-request") ||
+      err.message?.includes("unauthorized-domain")
     ) {
       const uid = `sim-${email.replace(/[^a-zA-Z0-9]/g, "").toLowerCase()}`;
       let profile: any;
@@ -160,6 +164,11 @@ export const googleLogin = async () => {
     return res.user;
   } catch (err: any) {
     console.error("Google popup auth error:", err);
+    if (err.code === "auth/unauthorized-domain" || err.message?.includes("unauthorized-domain")) {
+      throw new Error(
+        `domain-unauthorized:This preview app's domain (${window.location.hostname}) is not authorized in your Firebase Console. Please add "${window.location.hostname}" to Authorized Domains in your Firebase console under Authentication > Settings > Authorized Domains.`
+      );
+    }
     if (err.code === "auth/popup-closed-by-user" || err.message?.includes("popup-closed-by-user")) {
       throw new Error("The Google sign-in window was closed before completion. Please try again and make sure to finish the sign-in.");
     }

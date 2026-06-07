@@ -15,13 +15,13 @@ import { signInAnonymously } from "firebase/auth";
 import { auth, db } from "../services/firebase";
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { UserProfile } from "../types";
-import firebaseConfig from "../../firebase-applet-config.json";
 
 interface LoginProps {
   onLoginSuccess?: (profile: UserProfile) => void;
+  onSimulateLogin?: (role: "buyer" | "seller" | "admin") => void;
 }
 
-export default function Login({ onLoginSuccess }: LoginProps) {
+export default function Login({ onLoginSuccess, onSimulateLogin }: LoginProps) {
   const [isRegisterMode, setIsRegisterMode] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -57,7 +57,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
     } catch (err: any) {
       console.error(err);
       if (err.code === "auth/email-already-in-use") {
-        setErrorMessage("This email address is already in use. Try selecting the 'Sign In' tab above to log in!");
+        setErrorMessage("This email address is already in use.");
       } else if (err.code === "auth/weak-password") {
         setErrorMessage("Password must be at least 6 characters.");
       } else if (err.code === "auth/invalid-credential" || err.code === "auth/wrong-password" || err.code === "auth/user-not-found") {
@@ -79,16 +79,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
       setSuccessMessage("Authenticated with Google!");
     } catch (err: any) {
       console.error(err);
-      if (err.message && err.message.startsWith("domain-unauthorized:")) {
-        const parsedMessage = err.message.replace("domain-unauthorized:", "");
-        setErrorMessage(parsedMessage);
-      } else if (err.code === "auth/unauthorized-domain" || err.message?.includes("unauthorized-domain")) {
-        setErrorMessage(
-          `This preview app's domain (${window.location.hostname}) is not authorized in your Firebase Console. Please add "${window.location.hostname}" to Authorized Domains in your Firebase console under Authentication > Settings > Authorized Domains.`
-        );
-      } else {
-        setErrorMessage(err.message || "Google Authentication was cancelled or blocked.");
-      }
+      setErrorMessage(err.message || "Google Authentication was cancelled or blocked.");
     } finally {
       setIsSubmitting(false);
     }
@@ -104,7 +95,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
         <h2 className="text-xl font-black text-slate-900 tracking-tight">
           Shop<span className="text-indigo-600">Easy</span>
         </h2>
-        <p className="text-xs text-slate-400 mt-1 font-medium">Access your secure marketplace account</p>
+        <p className="text-xs text-slate-400 mt-1 font-medium">Access your global developer sandbox account</p>
       </div>
 
       {/* Tabs */}
@@ -143,55 +134,10 @@ export default function Login({ onLoginSuccess }: LoginProps) {
 
       {/* Error/Success Feedbacks */}
       {errorMessage && (
-        errorMessage.includes("Settings > Authorized Domains") || errorMessage.includes("Authorized domains") || errorMessage.includes("unauthorized-domain") ? (
-          <div className="bg-amber-50 text-amber-900 border border-amber-200 p-4.5 rounded-2xl mb-5 space-y-3 shadow-xs">
-            <div className="flex items-start gap-2.5">
-              <ShieldAlert className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
-              <div>
-                <p className="font-extrabold text-amber-950 text-xs">Firebase Domain Authorization Required</p>
-                <p className="leading-relaxed text-[11px] text-amber-900/90 mt-0.5">
-                  To authenticate properly, this environment's active domain must be added to your Authorized Domains list in the Firebase console.
-                </p>
-              </div>
-            </div>
-
-            <div className="bg-white/90 border border-amber-200/60 rounded-xl p-2.5 font-mono text-[10px] space-y-1">
-              <div className="flex justify-between items-center text-[9px] text-slate-500 font-bold uppercase tracking-wider">
-                <span>Domain to Authorize</span>
-                <button 
-                  type="button"
-                  onClick={() => {
-                    navigator.clipboard.writeText(window.location.hostname);
-                    alert("Copied host name to clipboard!");
-                  }}
-                  className="px-2 py-0.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded transition cursor-pointer font-sans font-extrabold text-[9px]"
-                >
-                  Copy Domain
-                </button>
-              </div>
-              <div className="text-slate-800 font-bold break-all select-all pt-1 text-[11px]">{window.location.hostname}</div>
-            </div>
-
-            <div className="text-[11px] leading-relaxed text-amber-950/90 space-y-1.5 pt-1">
-              <p className="font-extrabold text-amber-950">How to Fix This in 60 Seconds:</p>
-              <ol className="list-decimal list-outside space-y-1 pl-4.5 font-medium">
-                <li>Go to the <a href={`https://console.firebase.google.com/project/${firebaseConfig.projectId}/authentication/settings`} target="_blank" rel="noopener noreferrer" className="underline font-bold text-indigo-650 hover:text-indigo-800">Firebase Authentication Console</a>.</li>
-                <li>At the top bar, click on the <b>Settings</b> tab.</li>
-                <li>In the left sidebar, click on <b>Authorized domains</b>.</li>
-                <li>Click the <b>Add domain</b> button and paste: <code>{window.location.hostname}</code>.</li>
-              </ol>
-            </div>
-            
-            <div className="border-t border-amber-200/60 pt-2.5 text-[11px] text-amber-800/85 font-medium leading-relaxed">
-              💡 <b>Tip:</b> Standard email registration/login will automatic fallback to <b>offline sandbox mode</b> so you can continue testing all features right away even without saving domains!
-            </div>
-          </div>
-        ) : (
-          <div className="bg-red-50 text-red-700 text-xs py-2.5 px-3.5 rounded-xl border border-red-100 mb-4 font-semibold flex items-center gap-2">
-            <div className="h-1.5 w-1.5 rounded-full bg-red-600 animate-pulse flex-shrink-0" />
-            <span>{errorMessage}</span>
-          </div>
-        )
+        <div className="bg-red-50 text-red-700 text-xs py-2.5 px-3.5 rounded-xl border border-red-100 mb-4 font-semibold flex items-center gap-2">
+          <div className="h-1.5 w-1.5 rounded-full bg-red-600 animate-pulse flex-shrink-0" />
+          <span>{errorMessage}</span>
+        </div>
       )}
       {successMessage && (
         <div className="bg-emerald-50 text-emerald-700 text-xs py-2.5 px-3.5 rounded-xl border border-emerald-100 mb-4 font-semibold flex items-center gap-2">
@@ -302,6 +248,41 @@ export default function Login({ onLoginSuccess }: LoginProps) {
         <span>Continue with Google</span>
       </button>
 
+      {/* Instant Sandbox Evaluator profiles if simulated login is passed */}
+      {onSimulateLogin && (
+        <div className="mt-6 border-t border-dashed border-slate-100 pt-5 text-center">
+          <div className="flex items-center justify-center gap-1.5 text-[10px] uppercase tracking-wider font-extrabold text-indigo-600 mb-3 bg-indigo-50/50 py-1 px-2.5 rounded-full w-fit mx-auto">
+            <Sparkles className="h-3 w-3 animate-pulse" />
+            <span>Developer Sandbox Accounts</span>
+          </div>
+          <p className="text-[11px] text-slate-400 mb-4 font-medium leading-relaxed">
+            Instantly log in using sandbox identities to test complete UI permissions and roles without registration:
+          </p>
+          <div className="grid grid-cols-3 gap-2 text-[10px] font-extrabold">
+            <button
+              type="button"
+              onClick={() => onSimulateLogin("buyer")}
+              className="bg-slate-50 hover:bg-indigo-50 text-indigo-600 border border-slate-100 p-2 rounded-xl transition duration-200"
+            >
+              Demo Buyer
+            </button>
+            <button
+              type="button"
+              onClick={() => onSimulateLogin("seller")}
+              className="bg-slate-50 hover:bg-violet-50 text-violet-600 border border-slate-100 p-2 rounded-xl transition duration-200"
+            >
+              Demo Seller
+            </button>
+            <button
+              type="button"
+              onClick={() => onSimulateLogin("admin")}
+              className="bg-slate-50 hover:bg-rose-50 text-rose-600 border border-slate-100 p-2 rounded-xl transition duration-200"
+            >
+              Demo Admin
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

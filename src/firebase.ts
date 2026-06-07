@@ -5,9 +5,8 @@ import { getStorage } from "firebase/storage";
 import firebaseConfig from "../firebase-applet-config.json";
 
 const app = initializeApp(firebaseConfig);
-// CRITICAL: The app needs to specify the explicit firestoreDatabaseId when using sub-databases
-const dbId = (firebaseConfig as any).firestoreDatabaseId;
-export const db = dbId && dbId !== "(default)" ? getFirestore(app, dbId) : getFirestore(app);
+// CRITICAL: The app needs to specify the explicit firestoreDatabaseId
+export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
 export const auth = getAuth(app);
 export const storage = getStorage(app);
 
@@ -61,7 +60,7 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
 // Mandatory connection test on boots
 async function testConnection() {
   try {
-    await getDocFromServer(doc(db, "test_operations", "connection"));
+    await getDocFromServer(doc(db, "test", "connection"));
   } catch (error) {
     if (error instanceof Error && error.message.includes("offline")) {
       console.error("Please check your Firebase configuration.");

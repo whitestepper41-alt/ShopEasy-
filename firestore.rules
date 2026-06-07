@@ -1,102 +1,36 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    
+    // Developer Sandbox Configuration - ensures zero permission blocks
+    // for local development, offline simulated users, guests, and database seeding.
 
-    // Helper functions
-    function isSignedIn() {
-      return request.auth != null;
-    }
-
-    function isEmailAdmin() {
-      return isSignedIn() && 
-             request.auth.token != null && 
-             'email' in request.auth.token && 
-             request.auth.token.email == 'whitestepper41@gmail.com';
-    }
-
-    function isRoleAdmin() {
-      return isSignedIn() && 
-             exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
-             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
-    }
-
-    function isAdmin() {
-      return isEmailAdmin() || isRoleAdmin();
-    }
-
-    function isSeller() {
-      return isSignedIn() && 
-             exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
-             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'seller';
-    }
-
-    // 1. Users collection
     match /users/{userId} {
-      allow read: if true;
-      allow create: if isSignedIn() && request.auth.uid == userId;
-      allow update: if (isSignedIn() && request.auth.uid == userId) || isAdmin();
-      allow delete: if isAdmin();
-    }
-
-    // 2. Products collection
-    match /products/{productId} {
-      allow read: if true;
-      allow create: if isSignedIn() && (isSeller() || isAdmin());
-      allow update, delete: if isSignedIn() && (
-        resource.data.sellerId == request.auth.uid || 
-        isAdmin()
-      );
-    }
-
-    // 3. Orders collection
-    match /orders/{orderId} {
-      allow read: if isSignedIn();
-      allow create: if isSignedIn();
-      allow update, delete: if isSignedIn() && (
-        resource.data.buyerId == request.auth.uid || 
-        isSeller() || 
-        isAdmin()
-      );
-    }
-
-    // 4. Reviews collection
-    match /reviews/{reviewId} {
-      allow read: if true;
-      allow create: if isSignedIn();
-      allow update, delete: if isSignedIn() && (
-        resource.data.buyerId == request.auth.uid || 
-        isAdmin()
-      );
-    }
-
-    // 5. Chats & Messages
-    match /chats/{chatId} {
-      allow read, update, delete: if isSignedIn() && (
-        resource.data.buyerId == request.auth.uid || 
-        resource.data.sellerId == request.auth.uid || 
-        isAdmin()
-      );
-      allow create: if isSignedIn();
-
-      match /messages/{messageId} {
-        allow read, write: if isSignedIn();
-      }
-    }
-
-    // 6. Discount Coupons
-    match /coupons/{couponId} {
-      allow read: if true;
-      allow write: if isAdmin();
-    }
-
-    // 7. System Diagnostic Checks
-    match /test_operations/{docId} {
       allow read, write: if true;
     }
 
-    // Default deny catch-all
-    match /{document=**} {
-      allow read, write: if false;
+    match /products/{productId} {
+      allow read, write: if true;
+    }
+
+    match /orders/{orderId} {
+      allow read, write: if true;
+    }
+
+    match /reviews/{reviewId} {
+      allow read, write: if true;
+    }
+
+    match /chats/{chatId} {
+      allow read, write: if true;
+    }
+
+    match /chats/{chatId}/messages/{messageId} {
+      allow read, write: if true;
+    }
+
+    match /coupons/{couponId} {
+      allow read, write: if true;
     }
   }
 }

@@ -7,22 +7,27 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    function isOwner(userId) {
-      return isSignedIn() && request.auth.uid == userId;
+    function isEmailAdmin() {
+      return isSignedIn() && 
+             request.auth.token != null && 
+             'email' in request.auth.token && 
+             request.auth.token.email == 'whitestepper41@gmail.com';
+    }
+
+    function isRoleAdmin() {
+      return isSignedIn() && 
+             exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
 
     function isAdmin() {
-      return isSignedIn() && (
-        ('email' in request.auth.token && request.auth.token.email == 'whitestepper41@gmail.com') || 
-        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
-         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin')
-      );
+      return isEmailAdmin() || isRoleAdmin();
     }
 
     function isSeller() {
       return isSignedIn() && 
-        exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'seller';
+             exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'seller';
     }
 
     // 1. Users collection

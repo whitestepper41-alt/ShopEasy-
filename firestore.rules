@@ -1,51 +1,102 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function getSafeUid() {
+      return request.auth == null ? 'guest_user' : request.auth.uid;
+    }
+
+    // Checking roles via a lookup in the 'users' documents
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(getSafeUid())).data;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        request.auth.token.email == 'whitestepper41@gmail.com' || 
+        (exists(/databases/$(database)/documents/users/$(getSafeUid())) && getUserData().role == 'admin')
+      );
+    }
+
+    function isSeller() {
+      return isSignedIn() && exists(/databases/$(database)/documents/users/$(getSafeUid())) && getUserData().role == 'seller';
+    }
+
     // 1. Users collection
     match /users/{userId} {
       allow read: if true;
-      allow write: if true;
+      allow create: if isSignedIn();
+      allow update: if isOwner(userId) || isAdmin();
+      allow delete: if isAdmin();
     }
 
     // 2. Products collection
     match /products/{productId} {
       allow read: if true;
-      allow write: if true;
+      allow create: if isSignedIn() && (isSeller() || isAdmin());
+      allow update, delete: if isSignedIn() && (
+        resource.data.sellerId == request.auth.uid || 
+        isAdmin()
+      );
     }
 
     // 3. Orders collection
     match /orders/{orderId} {
-      allow read: if true;
-      allow write: if true;
+      allow read: if isSignedIn() && (
+        resource.data.buyerId == request.auth.uid || 
+        resource.data.items[0].sellerId == request.auth.uid || // simplify for sellers
+        isAdmin() ||
+        isSeller()
+      );
+      allow create: if isSignedIn();
+      allow update, delete: if isSignedIn() && (
+        resource.data.buyerId == request.auth.uid || 
+        isAdmin()
+      );
     }
 
     // 4. Reviews collection
     match /reviews/{reviewId} {
       allow read: if true;
-      allow write: if true;
+      allow create: if isSignedIn();
+      allow update, delete: if isSignedIn() && (
+        resource.data.buyerId == request.auth.uid || 
+        isAdmin()
+      );
     }
 
     // 5. Chats & Messages
     match /chats/{chatId} {
-      allow read: if true;
-      allow write: if true;
+      allow read, update, delete: if isSignedIn() && (
+        resource.data.buyerId == request.auth.uid || 
+        resource.data.sellerId == request.auth.uid || 
+        isAdmin()
+      );
+      allow create: if isSignedIn();
 
       match /messages/{messageId} {
-        allow read: if true;
-        allow write: if true;
+        allow read, write: if isSignedIn();
       }
     }
 
     // 6. Discount Coupons
     match /coupons/{couponId} {
       allow read: if true;
-      allow write: if true;
+      allow write: if isAdmin();
     }
 
     // 7. System Diagnostic Checks
     match /test_operations/{docId} {
-      allow read: if true;
-      allow write: if true;
+      allow read, write: if true;
     }
   }
 }

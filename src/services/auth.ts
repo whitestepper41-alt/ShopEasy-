@@ -24,7 +24,12 @@ export const registerUser = async (email: string, password: string, name: string
       status: "active",
       createdAt: serverTimestamp(),
     };
-    await setDoc(doc(db, "users", res.user.uid), profile);
+    
+    try {
+      await setDoc(doc(db, "users", res.user.uid), profile);
+    } catch (dbErr) {
+      console.warn("Firestore profile save failed during standard registration (possibly offline or propagating permissions):", dbErr);
+    }
 
     return res.user;
   } catch (err: any) {
@@ -47,8 +52,12 @@ export const registerUser = async (email: string, password: string, name: string
         createdAt: new Date().toISOString() as any,
       };
       
-      // Write profile to Firestore
-      await setDoc(doc(db, "users", uid), profile);
+      try {
+        // Write profile to Firestore
+        await setDoc(doc(db, "users", uid), profile);
+      } catch (dbErr) {
+        console.warn("Firestore offline/unauthorized during simulated registration, continuing with local storage fallback:", dbErr);
+      }
       // Save local session
       localStorage.setItem("shopeasy_simulated_user", JSON.stringify(profile));
       // Notify components to sync
@@ -82,14 +91,27 @@ export const loginUser = async (email: string, password: string) => {
       err.message?.includes("network-request")
     ) {
       const uid = `sim-${email.replace(/[^a-zA-Z0-9]/g, "").toLowerCase()}`;
-      
-      // Fetch or create profile in Firestore
-      const docRef = doc(db, "users", uid);
-      const snap = await getDoc(docRef);
       let profile: any;
-      if (snap.exists()) {
-        profile = snap.data();
-      } else {
+
+      try {
+        // Fetch or create profile in Firestore
+        const docRef = doc(db, "users", uid);
+        const snap = await getDoc(docRef);
+        if (snap.exists()) {
+          profile = snap.data();
+        } else {
+          profile = {
+            uid,
+            email,
+            username: email.split("@")[0],
+            role: email === "whitestepper41@gmail.com" ? "admin" : "buyer",
+            status: "active",
+            createdAt: new Date().toISOString(),
+          };
+          await setDoc(docRef, profile);
+        }
+      } catch (dbErr) {
+        console.warn("Firestore offline/unauthorized during simulated login, using offline local-only fallback profile:", dbErr);
         profile = {
           uid,
           email,
@@ -98,7 +120,6 @@ export const loginUser = async (email: string, password: string) => {
           status: "active",
           createdAt: new Date().toISOString(),
         };
-        await setDoc(docRef, profile);
       }
       
       localStorage.setItem("shopeasy_simulated_user", JSON.stringify(profile));

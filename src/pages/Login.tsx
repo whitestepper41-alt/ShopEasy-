@@ -56,7 +56,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
     } catch (err: any) {
       console.error(err);
       if (err.code === "auth/email-already-in-use") {
-        setErrorMessage("This email address is already in use.");
+        setErrorMessage("This email address is already in use. Try selecting the 'Sign In' tab above to log in!");
       } else if (err.code === "auth/weak-password") {
         setErrorMessage("Password must be at least 6 characters.");
       } else if (err.code === "auth/invalid-credential" || err.code === "auth/wrong-password" || err.code === "auth/user-not-found") {

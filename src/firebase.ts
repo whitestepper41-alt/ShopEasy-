@@ -61,7 +61,7 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
 // Mandatory connection test on boots
 async function testConnection() {
   try {
-    await getDocFromServer(doc(db, "test", "connection"));
+    await getDocFromServer(doc(db, "test_operations", "connection"));
   } catch (error) {
     if (error instanceof Error && error.message.includes("offline")) {
       console.error("Please check your Firebase configuration.");

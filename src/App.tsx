@@ -99,9 +99,6 @@ export default function App() {
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [activeChatThreadId, setActiveChatThreadId] = useState<string | null>(null);
 
-  // Status banners banner
-  const [simLoginsOpen, setSimLoginsOpen] = useState(true);
-
   // 1. Core authentication listener
   useEffect(() => {
     const syncAppUser = async () => {
@@ -137,16 +134,7 @@ export default function App() {
           console.error("Auth profile syncing err: ", e);
         }
       } else {
-        const localUserStr = localStorage.getItem("shopeasy_simulated_user");
-        if (localUserStr) {
-          try {
-            setUserProfile(JSON.parse(localUserStr) as UserProfile);
-          } catch {
-            setUserProfile(null);
-          }
-        } else {
-          setUserProfile(null);
-        }
+        setUserProfile(null);
       }
       setAuthLoading(false);
     };
@@ -292,125 +280,25 @@ export default function App() {
     const provider = new GoogleAuthProvider();
     try {
       await signInWithPopup(auth, provider);
-      setSimLoginsOpen(false);
-    } catch (e) {
+    } catch (e: any) {
       console.error("Google Auth error login: ", e);
-      alert("Sign-in popup was blocked. Try using the quick simulation login panel underneath!");
+      if (e.code === "auth/popup-closed-by-user" || e.message?.includes("popup-closed-by-user")) {
+        alert("The authentication window was closed before completion. Please try again and complete the sign-in!");
+      } else if (e.code === "auth/popup-blocked" || e.message?.includes("popup-blocked")) {
+        alert("The sign-in popup was blocked by your browser's protection settings. Please enable popups for this site and try again.");
+      } else {
+        alert("Sign-in popup was blocked or closed. Please try again or enable popups.");
+      }
     }
   };
 
   // Switch tabs cleanly
   const handleSignout = async () => {
-    localStorage.removeItem("shopeasy_simulated_user");
     window.dispatchEvent(new Event("shopeasy-auth-sync"));
     await signOut(auth);
     setUserProfile(null);
     setCurrentTab("browse");
     setCart([]);
-  };
-
-  // Multi-profile Sandbox Quick login simulations
-  const handleSimulatedLogin = async (simType: "buyer" | "seller" | "admin") => {
-    setAuthLoading(true);
-    try {
-      let uid: string;
-      try {
-        const cred = await signInAnonymously(auth);
-        uid = cred.user.uid;
-      } catch (authErr: any) {
-        console.warn("Anonymous sign-in restricted. Falling back to local simulated ID.", authErr);
-        uid = `sim-sandbox-${simType}`;
-      }
-
-      // 2. Assemble simulation profiles
-      let profilePayload: UserProfile;
-
-      if (simType === "admin") {
-        profilePayload = {
-          uid,
-          email: "whitestepper41@gmail.com", // Rule-validated bootstrapping admin
-          username: "Administrator (QA Mode)",
-          role: "admin",
-          status: "active",
-          createdAt: serverTimestamp()
-        };
-      } else if (simType === "seller") {
-        profilePayload = {
-          uid,
-          email: "supervolt.vendor@demo.com",
-          username: "SuperVolt Manager",
-          role: "seller",
-          status: "active", // Already approved
-          sellerName: "SuperVolt Technologies",
-          sellerDescription: "Supreme distributor of state-of-the-art gaming keyboards and multi-mode custom mechanical keys.",
-          earnings: 0,
-          createdAt: serverTimestamp()
-        };
-      } else {
-        profilePayload = {
-          uid,
-          email: "client.demo@demo.com",
-          username: "John Demobuyer",
-          role: "buyer",
-          status: "active",
-          createdAt: serverTimestamp()
-        };
-      }
-
-      await setDoc(doc(db, "users", uid), profilePayload);
-      
-      const localProfile = {
-        ...profilePayload,
-        createdAt: new Date().toISOString()
-      };
-      localStorage.setItem("shopeasy_simulated_user", JSON.stringify(localProfile));
-      
-      setUserProfile(profilePayload);
-      setSimLoginsOpen(false);
-      
-      window.dispatchEvent(new Event("shopeasy-auth-sync"));
-    } catch (e) {
-      console.error(e);
-      alert("Simulation setup failed: " + e);
-    } finally {
-      setAuthLoading(false);
-    }
-  };
-
-  // Sandbox Role Switching Switcher
-  const handleSwitchSandboxRole = async (targetRole: "buyer" | "seller" | "admin") => {
-    if (!userProfile) return;
-    if (userProfile.email !== "whitestepper41@gmail.com") {
-      alert("Unauthorized: Sandbox role-switching controls restricted to system administrator.");
-      return;
-    }
-    try {
-      const docRef = doc(db, "users", userProfile.uid);
-      const updates: Partial<UserProfile> = {
-        role: targetRole,
-      };
-
-      if (targetRole === "seller" && !userProfile.sellerName) {
-        updates.sellerName = "My Merchant Store";
-        updates.sellerDescription = "Standard seller general store.";
-        updates.status = "active";
-      }
-
-      await updateDoc(docRef, updates);
-      setUserProfile((prev) => {
-        const next = prev ? { ...prev, ...updates } : null;
-        if (next) {
-          const localUserStr = localStorage.getItem("shopeasy_simulated_user");
-          if (localUserStr) {
-            localStorage.setItem("shopeasy_simulated_user", JSON.stringify(next));
-          }
-        }
-        return next;
-      });
-      setCurrentTab(targetRole === "buyer" ? "browse" : targetRole);
-    } catch (e) {
-      console.error("Role switch error", e);
-    }
   };
 
   // Handle buyer applying to become a seller
@@ -433,20 +321,7 @@ export default function App() {
       };
 
       await updateDoc(doc(db, "users", userProfile.uid), updates);
-      
       setUserProfile((prev) => prev ? { ...prev, ...updates } : null);
-      
-      // Update local storage simulation sync
-      const localUserStr = localStorage.getItem("shopeasy_simulated_user");
-      if (localUserStr) {
-        try {
-          const localObj = JSON.parse(localUserStr);
-          localStorage.setItem("shopeasy_simulated_user", JSON.stringify({ ...localObj, ...updates }));
-        } catch (e) {
-          console.warn("Storage sync warning", e);
-        }
-      }
-      
       setCurrentTab("seller");
       alert("Your merchant application has been successfully submitted! Admin will audit and approve your store.");
     } catch (error) {
@@ -866,40 +741,8 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50/50 flex flex-col font-sans antialiased text-gray-800">
+    <div className="min-h-screen bg-slate-50/50 flex flex-col font-sans antialiased text-gray-800 w-full max-w-full overflow-x-hidden">
       
-      {/* Dynamic Simulated Quick login drawer toggle micro banner */}
-      {simLoginsOpen && !userProfile && (
-        <div className="bg-indigo-600 px-4 py-3 text-white text-xs border-b border-indigo-700">
-          <div className="mx-auto max-w-7xl flex flex-col sm:flex-row items-center justify-between gap-3 font-semibold">
-            <div className="flex items-center gap-2 text-center sm:text-left">
-              <Award className="h-5 w-5 animate-bounce-slow text-yellow-300" />
-              <span>TEST PORTAL: Log in with pre-loaded mock profiles to audit Buyer, Seller dashboards instantly.</span>
-            </div>
-            <div className="flex gap-2 text-[11px] font-black">
-              <button 
-                onClick={() => handleSimulatedLogin("buyer")}
-                className="bg-neutral-900 border border-neutral-700 hover:bg-neutral-800 px-3 py-1.5 rounded-lg text-white"
-              >
-                Simulate Buyer
-              </button>
-              <button 
-                onClick={() => handleSimulatedLogin("seller")}
-                className="bg-neutral-900 border border-neutral-700 hover:bg-neutral-800 px-3 py-1.5 rounded-lg text-white"
-              >
-                Simulate Seller (SuperVolt)
-              </button>
-              <button 
-                onClick={() => handleSimulatedLogin("admin")}
-                className="bg-neutral-900 border border-neutral-700 hover:bg-neutral-800 px-3 py-1.5 rounded-lg text-white"
-              >
-                Simulate Admin
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Main Navbar */}
       <Navbar
         userProfile={userProfile}
@@ -912,14 +755,13 @@ export default function App() {
         onOpenCart={() => setIsCartOpen(true)}
         onOpenChat={() => {
           if (!userProfile) {
-            alert("Please sign in or use simulate quick buttons to spawn chat window.");
+            alert("Please sign in to start chatting.");
             return;
           }
           setIsChatOpen(true);
         }}
         onLogin={handleGoogleLogin}
         onLogout={handleSignout}
-        onSwitchRole={handleSwitchSandboxRole}
         currentTab={currentTab}
         setCurrentTab={setCurrentTab}
         onOpenSellerApply={() => setIsSellerApplyOpen(true)}
@@ -929,13 +771,13 @@ export default function App() {
       <main className="mx-auto flex-1 w-full max-w-7xl p-4 lg:p-6 mb-12">
         {/* If user is completely unauthenticated */}
         {!userProfile ? (
-          <Login onSimulateLogin={handleSimulatedLogin} />
+          <Login />
         ) : (
           <>
             {/* If authenticated user: Render target page components based on tab route */}
             
             {/* 1. SELLER PORTAL TAB */}
-            {currentTab === "seller" && userProfile.role === "seller" && (
+            {currentTab === "seller" && (userProfile.role === "seller" || userProfile.role === "admin") && (
               <SellerDashboard
                 sellerProfile={userProfile}
                 products={products}
@@ -988,7 +830,7 @@ export default function App() {
                           </div>
                           <div className="flex gap-2 items-center">
                             <span className="bg-green-100 text-green-700 rounded px-1.5 py-0.5 text-[10px] uppercase">
-                              Simulated payment: {order.paymentStatus}
+                              Payment: {order.paymentStatus}
                             </span>
                             <span className="bg-indigo-50 text-indigo-700 rounded px-1.5 py-0.5 text-[10px] uppercase">
                               Dispatch status: {order.status}
@@ -1154,13 +996,13 @@ export default function App() {
         <div className="mx-auto max-w-7xl flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="space-y-1.5 text-center md:text-left">
             <h4 className="text-white text-sm font-black">ShopEasy Incorporated</h4>
-            <p className="text-gray-400 font-medium text-[11px]">Malawi Style Multi-vendor Sandbox Environment</p>
+            <p className="text-gray-400 font-medium text-[11px]">Malawi Style Multi-vendor Marketplace Platform</p>
           </div>
           
           <div className="flex gap-4.5 flex-wrap justify-center text-[11px] font-bold">
             <span className="text-neutral-500">Node JS + Firebase SDK</span>
             <span>•</span>
-            <span className="text-neutral-500">Stripe Payment Simulation</span>
+            <span className="text-neutral-500">Secure Stripe Processor</span>
             <span>•</span>
             <span className="text-indigo-400">ABAC Rules Safeguarded</span>
           </div>

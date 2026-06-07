@@ -18,10 +18,9 @@ import { UserProfile } from "../types";
 
 interface LoginProps {
   onLoginSuccess?: (profile: UserProfile) => void;
-  onSimulateLogin?: (role: "buyer" | "seller" | "admin") => void;
 }
 
-export default function Login({ onLoginSuccess, onSimulateLogin }: LoginProps) {
+export default function Login({ onLoginSuccess }: LoginProps) {
   const [isRegisterMode, setIsRegisterMode] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -95,7 +94,7 @@ export default function Login({ onLoginSuccess, onSimulateLogin }: LoginProps) {
         <h2 className="text-xl font-black text-slate-900 tracking-tight">
           Shop<span className="text-indigo-600">Easy</span>
         </h2>
-        <p className="text-xs text-slate-400 mt-1 font-medium">Access your global developer sandbox account</p>
+        <p className="text-xs text-slate-400 mt-1 font-medium">Access your secure marketplace account</p>
       </div>
 
       {/* Tabs */}
@@ -248,41 +247,6 @@ export default function Login({ onLoginSuccess, onSimulateLogin }: LoginProps) {
         <span>Continue with Google</span>
       </button>
 
-      {/* Instant Sandbox Evaluator profiles if simulated login is passed */}
-      {onSimulateLogin && (
-        <div className="mt-6 border-t border-dashed border-slate-100 pt-5 text-center">
-          <div className="flex items-center justify-center gap-1.5 text-[10px] uppercase tracking-wider font-extrabold text-indigo-600 mb-3 bg-indigo-50/50 py-1 px-2.5 rounded-full w-fit mx-auto">
-            <Sparkles className="h-3 w-3 animate-pulse" />
-            <span>Developer Sandbox Accounts</span>
-          </div>
-          <p className="text-[11px] text-slate-400 mb-4 font-medium leading-relaxed">
-            Instantly log in using sandbox identities to test complete UI permissions and roles without registration:
-          </p>
-          <div className="grid grid-cols-3 gap-2 text-[10px] font-extrabold">
-            <button
-              type="button"
-              onClick={() => onSimulateLogin("buyer")}
-              className="bg-slate-50 hover:bg-indigo-50 text-indigo-600 border border-slate-100 p-2 rounded-xl transition duration-200"
-            >
-              Demo Buyer
-            </button>
-            <button
-              type="button"
-              onClick={() => onSimulateLogin("seller")}
-              className="bg-slate-50 hover:bg-violet-50 text-violet-600 border border-slate-100 p-2 rounded-xl transition duration-200"
-            >
-              Demo Seller
-            </button>
-            <button
-              type="button"
-              onClick={() => onSimulateLogin("admin")}
-              className="bg-slate-50 hover:bg-rose-50 text-rose-600 border border-slate-100 p-2 rounded-xl transition duration-200"
-            >
-              Demo Admin
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
